@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Physics Concepts</title>
+    <style>
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .concept-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .concept-title {
+            color: #3498db;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        .concept-content {
+            line-height: 1.6;
+        }
+        .back-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Let's Review the Concepts</h1>
+        
+        <div class="concept-card">
+            <h2 class="concept-title">Heisenberg's Uncertainty Principle</h2>
+            <div class="concept-content">
+                <p>This principle states that we cannot simultaneously know both the exact position and momentum of a particle with perfect precision. The more precisely we measure one quantity, the less precisely we can know the other.</p>
+                <ul>
+                    <li>Key point: Δx × Δp ≥ ℏ/2</li>
+                    <li>Δx = uncertainty in position</li>
+                    <li>Δp = uncertainty in momentum</li>
+                    <li>ℏ = reduced Planck's constant</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="concept-card">
+            <h2 class="concept-title">Wave-Particle Duality</h2>
+            <div class="concept-content">
+                <p>In quantum mechanics, all matter and radiation exhibit both wave-like and particle-like properties. For example, light can behave as both:</p>
+                <ul>
+                    <li>Wave: Diffraction and interference patterns</li>
+                    <li>Particle: Photoelectric effect</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="concept-card">
+            <h2 class="concept-title">Quantum Model of the Atom</h2>
+            <div class="concept-content">
+                <p>Niels Bohr proposed that electrons orbit the nucleus in fixed energy levels, and can only jump between these levels by absorbing or emitting specific amounts of energy.</p>
+                <ul>
+                    <li>Electrons exist in discrete energy levels</li>
+                    <li>Energy is quantized</li>
+                    <li>Electrons emit or absorb energy when changing levels</li>
+                </ul>
+            </div>
+        </div>
+
+        <button onclick="window.location.href='index.html'" class="back-btn">Back to Quiz</button>
+    </div>
+</body>
+</html>

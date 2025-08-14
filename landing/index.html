@@ -1,0 +1,102 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EmotionLearn - Neuroadaptive Learning Platform</title>
+    <meta name="description" content="An emotion-aware, neuroadaptive & collaborative learning platform that adapts to your emotional state and learning style." />
+    <meta name="author" content="EmotionLearn" />
+
+    <meta property="og:title" content="EmotionLearn - Neuroadaptive Learning Platform" />
+    <meta property="og:description" content="An emotion-aware, neuroadaptive & collaborative learning platform that adapts to your emotional state and learning style." />
+    <meta property="og:typ  e" content="website" />
+    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@emotionlearn" />
+    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    
+    <!-- Preconnect to Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script type="module" crossorigin src="/assets/index-Cad8IND4.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-CYyoVXeT.css">
+  </head>
+
+  <body>
+    <div id="root"></div>
+    
+    <!-- Dedicated Feedback Section -->
+    <div id="feedback-section"></div>
+    
+    <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
+    <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
+    
+    <!-- Custom styles to overlay feedback image on QR code -->
+    <style>
+      /* Target the QR code container - we don't hide it completely to maintain layout */
+      #root > div > section:last-child img {
+        visibility: hidden; /* Hide only the QR code image */
+      }
+      
+      /* Position the feedback section */
+      #feedback-section {
+        position: absolute;
+        /* These will be calculated by JavaScript to overlay exactly */
+        z-index: 100;
+        pointer-events: auto; /* Allow clicking on the feedback image */
+      }
+      
+      /* Feedback image styles */
+      .feedback-image {
+        width: 300px; /* Further increased size to match original QR code */
+        height: auto;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        border-radius: 4px;
+      }
+    </style>
+    
+    <!-- JavaScript to position the feedback image over the QR code -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        // Wait for React to render the page
+        setTimeout(function() {
+          // Find the QR code image
+          const sections = document.querySelectorAll('#root > div > section');
+          const lastSection = sections[sections.length - 1];
+          
+          if (lastSection) {
+            const qrCodeImg = lastSection.querySelector('img');
+            
+            if (qrCodeImg) {
+              // Get the position of the QR code
+              const qrRect = qrCodeImg.getBoundingClientRect();
+              
+              // Create the feedback image
+              const feedbackImg = document.createElement('img');
+              feedbackImg.src = '/assets/SARASWATI Guide and Feedback Form.png';
+              feedbackImg.alt = 'SARASWATI Guide and Feedback Form';
+              feedbackImg.className = 'feedback-image';
+              
+              // Add the image to the feedback section
+              const feedbackSection = document.getElementById('feedback-section');
+              feedbackSection.appendChild(feedbackImg);
+              
+              // Position the feedback section over the QR code
+              feedbackSection.style.position = 'absolute';
+              feedbackSection.style.top = (qrRect.top + window.scrollY) + 'px';
+              feedbackSection.style.left = (qrRect.left + window.scrollX) + 'px';
+              feedbackSection.style.width = qrRect.width + 'px';
+              feedbackSection.style.height = qrRect.height + 'px';
+              feedbackSection.style.display = 'flex';
+              feedbackSection.style.alignItems = 'center';
+              feedbackSection.style.justifyContent = 'center';
+            }
+          }
+        }, 1000); // Wait 1 second for React to render
+      });
+    </script>
+  </body>
+</html>

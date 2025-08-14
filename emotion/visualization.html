@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student State Visualization</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="quiz_handler.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f2f5;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .chart-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr); /* Change to 2 columns */
+            gap: 20px;
+            margin-top: 30px;
+            padding: 15px;
+        }
+        .chart-wrapper {
+            min-height: 400px; /* Add minimum height */
+            padding: 20px;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: transform 0.2s;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        canvas {
+            max-height: 350px; /* Control canvas height */
+            width: 100% !important;
+            height: 100% !important;
+        }
+        /* Add media query for better responsiveness */
+        @media (max-width: 1200px) {
+            .chart-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        h1 {
+            color: #1a237e;
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 2.5em;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #303f9f;
+            margin-bottom: 25px;
+            text-align: center;
+            font-size: 1.5em;
+        }
+        .error-message {
+            color: #d32f2f;
+            text-align: center;
+            padding: 20px;
+            background-color: #ffebee;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 1px solid #ffcdd2;
+        }
+        .summary-box {
+            background: #e8eaf6;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Student State Analysis Dashboard</h1>
+        <div id="error-container"></div>
+        <div class="summary-box">
+            <h2>Session Overview</h2>
+            <div id="sessionSummary"></div>
+        </div>
+        <div class="chart-container">
+            <div class="chart-wrapper">
+                <h2>Emotion Distribution</h2>
+                <canvas id="emotionPieChart"></canvas>
+            </div>
+            <div class="chart-wrapper">
+                <h2>State Durations</h2>
+                <canvas id="stateBarChart"></canvas>
+            </div>
+            <div class="chart-wrapper">
+                <h2>Emotion Balance</h2>
+                <canvas id="emotionRadarChart"></canvas>
+            </div>
+            <div class="chart-wrapper">
+                <h2>State Distribution</h2>
+                <canvas id="stateDoughnutChart"></canvas>
+            </div>
+            <div class="chart-wrapper">
+                <h2>Overall Session Analysis</h2>
+                <canvas id="overallPolarChart"></canvas>
+            </div>
+            <div class="chart-wrapper">
+                <h2>Quiz Score</h2>
+                <canvas id="quizScoreChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Helper Functions
+        function convertTimeToSeconds(timeStr) {
+            try {
+                const [minutes, seconds] = timeStr.split(':').map(Number);
+                if (isNaN(minutes) || isNaN(seconds)) {
+                    throw new Error(`Invalid time format: ${timeStr}`);
+                }
+                return minutes * 60 + seconds;
+            } catch (error) {
+                console.error('Error converting time:', error);
+                return 0;
+            }
+        }
+
+        // Function to show error message
+        function showError(message) {
+            const errorContainer = document.getElementById('error-container');
+            errorContainer.innerHTML = `<div class="error-message">${message}</div>`;
+        }
+
+        // Function to validate quiz results
+        function validateQuizResults(results) {
+            const requiredFields = [
+                'angryCount', 'disgustCount', 'fearCount', 'happyCount',
+                'sadCount', 'surpriseCount', 'neutralCount',
+                'restlessDuration', 'confusedDuration', 'boredDuration'
+            ];
+
+            for (const field of requiredFields) {
+                if (results[field] === undefined) {
+                    throw new Error(`Missing required field: ${field}`);
+                }
+            }
+            return true;
+        }
+
+        // Wait for DOM to be fully loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get and validate data from localStorage
+            let quizResults;
+            try {
+                const storedData = localStorage.getItem('quizResults');
+                if (!storedData) {
+                    throw new Error('No quiz results found. Please complete the quiz first.');
+                }
+                quizResults = JSON.parse(storedData);
+                validateQuizResults(quizResults);
+            } catch (error) {
+                showError(error.message);
+                console.error('Error loading quiz results:', error);
+            }
+
+            // Only create charts if we have valid data
+            if (quizResults) {
+                try {
+                    // Emotion counts data
+                    const emotionData = {
+                        labels: ['Angry', 'Disgust', 'Fear', 'Happy', 'Sad', 'Surprise', 'Neutral'],
+                        datasets: [{
+                            data: [
+                                quizResults.angryCount,
+                                quizResults.disgustCount,
+                                quizResults.fearCount,
+                                quizResults.happyCount,
+                                quizResults.sadCount,
+                                quizResults.surpriseCount,
+                                quizResults.neutralCount
+                            ],
+                            backgroundColor: [
+                                '#FF6B6B',
+                                '#4ECDC4',
+                                '#45B7D1',
+                                '#96CEB4',
+                                '#FFEEAD',
+                                '#D4A5A5',
+                                '#9B59B6'
+                            ]
+                        }]
+                    };
+
+                    // State durations data
+                    const stateData = {
+                        labels: ['Restless', 'Confused', 'Bored'],
+                        datasets: [{
+                            label: 'Duration (seconds)',
+                            data: [
+                                convertTimeToSeconds(quizResults.restlessDuration),
+                                convertTimeToSeconds(quizResults.confusedDuration),
+                                convertTimeToSeconds(quizResults.boredDuration)
+                            ],
+                            backgroundColor: [
+                                '#FF6B6B',
+                                '#4ECDC4',
+                                '#45B7D1'
+                            ]
+                        }]
+                    };
+
+                    // Radar Chart Data
+                    const radarData = {
+                        labels: ['Angry', 'Disgust', 'Fear', 'Happy', 'Sad', 'Surprise', 'Neutral'],
+                        datasets: [{
+                            label: 'Emotion Balance',
+                            data: [
+                                quizResults.angryCount,
+                                quizResults.disgustCount,
+                                quizResults.fearCount,
+                                quizResults.happyCount,
+                                quizResults.sadCount,
+                                quizResults.surpriseCount,
+                                quizResults.neutralCount
+                            ],
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            pointBackgroundColor: 'rgba(75, 192, 192, 1)'
+                        }]
+                    };
+
+                    // Doughnut Chart for State Distribution
+                    const doughnutData = {
+                        labels: ['Restless', 'Confused', 'Bored'],
+                        datasets: [{
+                            data: [
+                                convertTimeToSeconds(quizResults.restlessDuration),
+                                convertTimeToSeconds(quizResults.confusedDuration),
+                                convertTimeToSeconds(quizResults.boredDuration)
+                            ],
+                            backgroundColor: [
+                                'rgba(255, 99, 132, 0.8)',
+                                'rgba(54, 162, 235, 0.8)',
+                                'rgba(255, 206, 86, 0.8)'
+                            ]
+                        }]
+                    };
+
+                    // Polar Area Chart for Overall Analysis
+                    const polarData = {
+                        labels: ['Positive', 'Negative', 'Neutral', 'Active', 'Passive'],
+                        datasets: [{
+                            data: [
+                                quizResults.happyCount + quizResults.surpriseCount,
+                                quizResults.angryCount + quizResults.sadCount + quizResults.fearCount + quizResults.disgustCount,
+                                quizResults.neutralCount,
+                                convertTimeToSeconds(quizResults.restlessDuration),
+                                convertTimeToSeconds(quizResults.boredDuration)
+                            ],
+                            backgroundColor: [
+                                'rgba(75, 192, 192, 0.7)',
+                                'rgba(255, 99, 132, 0.7)',
+                                'rgba(153, 102, 255, 0.7)',
+                                'rgba(255, 159, 64, 0.7)',
+                                'rgba(201, 203, 207, 0.7)'
+                            ]
+                        }]
+                    };
+
+                    // Quiz Score Data
+                    const quizScoreData = {
+                        labels: ['Score', 'Total Questions'],
+                        datasets: [{
+                            label: 'Quiz Performance',
+                            data: [3, 5], // Static score of 3 out of 5
+                            backgroundColor: [
+                                'rgba(75, 192, 192, 0.8)', // Score color
+                                'rgba(201, 203, 207, 0.8)' // Total questions color
+                            ],
+                            borderColor: [
+                                'rgba(75, 192, 192, 1)',
+                                'rgba(201, 203, 207, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    };
+
+                    // Initialize all charts after ensuring canvas elements are ready
+                    try {
+                        // Emotion Pie Chart
+                        const emotionPieCtx = document.getElementById('emotionPieChart');
+                        if (!emotionPieCtx) throw new Error('emotionPieChart canvas not found');
+                        new Chart(emotionPieCtx, {
+                            type: 'pie',
+                            data: emotionData,
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: { position: 'right' },
+                                    tooltip: {
+                                        callbacks: {
+                                            label: function(context) {
+                                                const value = context.raw;
+                                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                                const percentage = ((value / total) * 100).toFixed(1);
+                                                return `${context.label}: ${value} (${percentage}%)`;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        });
+
+                        // State Bar Chart
+                        const stateBarCtx = document.getElementById('stateBarChart');
+                        if (!stateBarCtx) throw new Error('stateBarChart canvas not found');
+                        new Chart(stateBarCtx, {
+                            type: 'bar',
+                            data: stateData,
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                scales: {
+                                    y: {
+                                        beginAtZero: true,
+                                        title: { display: true, text: 'Duration (seconds)' }
+                                    }
+                                }
+                            }
+                        });
+
+                        // Emotion Radar Chart
+                        const radarCtx = document.getElementById('emotionRadarChart');
+                        if (!radarCtx) throw new Error('emotionRadarChart canvas not found');
+                        new Chart(radarCtx, {
+                            type: 'radar',
+                            data: radarData,
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                scales: { r: { beginAtZero: true } }
+                            }
+                        });
+
+                        // State Doughnut Chart
+                        const doughnutCtx = document.getElementById('stateDoughnutChart');
+                        if (!doughnutCtx) throw new Error('stateDoughnutChart canvas not found');
+                        new Chart(doughnutCtx, {
+                            type: 'doughnut',
+                            data: doughnutData,
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { position: 'bottom' } }
+                            }
+                        });
+
+                        // Overall Polar Chart
+                        const polarCtx = document.getElementById('overallPolarChart');
+                        if (!polarCtx) throw new Error('overallPolarChart canvas not found');
+                        new Chart(polarCtx, {
+                            type: 'polarArea',
+                            data: polarData,
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { position: 'right' } }
+                            }
+                        });
+
+                        // Quiz Score Chart
+                        const quizScoreCtx = document.getElementById('quizScoreChart');
+                        if (!quizScoreCtx) throw new Error('quizScoreChart canvas not found');
+                        new Chart(quizScoreCtx, {
+                            type: 'bar',
+                            data: quizScoreData,
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                scales: {
+                                    y: {
+                                        beginAtZero: true,
+                                        max: 5,
+                                        title: { 
+                                            display: true, 
+                                            text: 'Questions',
+                                            font: {
+                                                size: 14,
+                                                weight: 'bold'
+                                            }
+                                        },
+                                        ticks: {
+                                            stepSize: 1
+                                        }
+                                    }
+                                },
+                                plugins: {
+                                    legend: {
+                                        display: false
+                                    },
+                                    tooltip: {
+                                        callbacks: {
+                                            label: function(context) {
+                                                const value = context.raw;
+                                                const total = 5;
+                                                const percentage = Math.round((value / total) * 100);
+                                                return `${value} (${percentage}%)`;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        });
+
+                        // Update session summary
+                        updateSessionSummary(quizResults);
+                    } catch (error) {
+                        showError(`Error creating charts: ${error.message}`);
+                        console.error('Chart creation error:', error);
+                    }
+                } catch (error) {
+                    showError(`Error creating charts: ${error.message}`);
+                    console.error('Chart creation error:', error);
+                }
+            }
+        });
+
+        // Helper function to update session summary
+        function updateSessionSummary(results) {
+            const summaryElement = document.getElementById('sessionSummary');
+            if (summaryElement) {
+                // Initialize quiz scores safely
+                const quizScores = (results.quizScores && Array.isArray(results.quizScores)) 
+                    ? results.quizScores 
+                    : [];
+                
+                // Calculate average score only if there are scores
+                const avgScore = quizScores.length > 0 
+                    ? `${(quizScores.reduce((a, b) => a + b, 0) / quizScores.length).toFixed(2)}%`
+                    : 'No scores available';
+
+                // Update summary with clearer messaging
+                summaryElement.innerHTML = `
+                    <p>Total Emotions Recorded: ${getTotalEmotions(results)}</p>
+                    <p>Most Frequent Emotion: ${getMostFrequentEmotion(results)}</p>
+                    <p>Total Session Duration: ${getTotalDuration(results)}</p>
+                    <p>Quiz Performance: ${quizScores.length > 0 
+                        ? `Average Score: ${avgScore} (${quizScores.length} quizzes completed)`
+                        : 'No quizzes completed yet'}</p>
+                `;
+            }
+        }
+
+        function getTotalEmotions(results) {
+            return ['angryCount', 'disgustCount', 'fearCount', 'happyCount', 
+                   'sadCount', 'surpriseCount', 'neutralCount']
+                   .reduce((sum, key) => sum + (results[key] || 0), 0);
+        }
+
+        function getMostFrequentEmotion(results) {
+            const emotions = {
+                'Happy': results.happyCount,
+                'Sad': results.sadCount,
+                'Angry': results.angryCount,
+                'Neutral': results.neutralCount,
+                'Surprise': results.surpriseCount,
+                'Fear': results.fearCount,
+                'Disgust': results.disgustCount
+            };
+            return Object.entries(emotions).reduce((a, b) => b[1] > a[1] ? b : a)[0];
+        }
+
+        function getTotalDuration(results) {
+            const total = convertTimeToSeconds(results.restlessDuration) +
+                         convertTimeToSeconds(results.confusedDuration) +
+                         convertTimeToSeconds(results.boredDuration);
+            const minutes = Math.floor(total / 60);
+            const seconds = total % 60;
+            return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+    </script>
+</body>
+</html>

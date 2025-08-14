@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relaxation Tips</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f7ff;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+        }
+        .tip-card {
+            background: #f8f9fa;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            border-left: 4px solid #3498db;
+        }
+        .breathing-exercise {
+            text-align: center;
+            padding: 30px;
+            background: #e3f2fd;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .breathing-circle {
+            width: 100px;
+            height: 100px;
+            background: #3498db;
+            border-radius: 50%;
+            margin: 20px auto;
+            animation: breathe 8s infinite;
+        }
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.5); }
+        }
+        .back-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+            text-decoration: none;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Take a Moment to Relax</h1>
+        
+        <div class="breathing-exercise">
+            <h2>Quick Breathing Exercise</h2>
+            <p>Follow the circle: Breathe in as it expands, out as it shrinks</p>
+            <div class="breathing-circle"></div>
+            <p>Try this for 1 minute</p>
+        </div>
+
+        <div class="tip-card">
+            <h3>Quick Tips for Exam Stress</h3>
+            <ul>
+                <li>Take deep breaths - inhale for 4 seconds, hold for 4, exhale for 4</li>
+                <li>Roll your shoulders and stretch your neck gently</li>
+                <li>Remember: it's normal to feel some stress during exams</li>
+                <li>Focus on one question at a time</li>
+                <li>If stuck, move on and come back later</li>
+            </ul>
+        </div>
+
+        <div class="tip-card">
+            <h3>Positive Affirmations</h3>
+            <ul>
+                <li>"I am well-prepared for this exam"</li>
+                <li>"I can handle this challenge"</li>
+                <li>"I will do my best, and that is enough"</li>
+                <li>"Staying calm helps me think clearly"</li>
+            </ul>
+        </div>
+
+        <a href="index.html" class="back-btn">Return to Quiz</a>
+    </div>
+
+    <script>
+        // Timer and cursor tracking variables
+        let cursorMovementTimer = null;
+        let consecutiveMovementTime = 0;
+        let canReturn = false;
+        let lastCursorPosition = { x: 0, y: 0 };
+
+        // Hide return button initially
+        document.querySelector('.back-btn').style.display = 'none';
+
+        // Track cursor movement
+        document.addEventListener('mousemove', (e) => {
+            // Calculate cursor movement distance
+            const distance = Math.sqrt(
+                Math.pow(e.clientX - lastCursorPosition.x, 2) +
+                Math.pow(e.clientY - lastCursorPosition.y, 2)
+            );
+
+            // Update last position
+            lastCursorPosition.x = e.clientX;
+            lastCursorPosition.y = e.clientY;
+
+            // If significant movement
+            if (distance > 5) {
+                consecutiveMovementTime += 100;
+                
+                // If moving for 5 seconds continuously
+                if (consecutiveMovementTime >= 5000 && !canReturn) {
+                    canReturn = true;
+                    
+                    // Show confirmation dialog
+                    if (confirm("You seem restless. Are you ready to return to the quiz?")) {
+                        window.location.href = 'index.html';
+                    } else {
+                        // If user chooses to stay, show return button after 30 seconds
+                        setTimeout(() => {
+                            document.querySelector('.back-btn').style.display = 'block';
+                        }, 30000);
+                    }
+                }
+            } else {
+                consecutiveMovementTime = 0;
+            }
+        });
+
+        // Reset movement counter if no movement
+        setInterval(() => {
+            if (!canReturn) {
+                consecutiveMovementTime = Math.max(0, consecutiveMovementTime - 100);
+            }
+        }, 100);
+
+        // Show return button after 30 seconds if user hasn't triggered early return
+        setTimeout(() => {
+            if (!canReturn) {
+                document.querySelector('.back-btn').style.display = 'block';
+            }
+        }, 30000);
+    </script>
+</body>
+</html>

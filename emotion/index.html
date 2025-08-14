@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Student State and Emotion Detection</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      /* Face detection specific styles */
+      .dashboard {
+        display: grid;
+        grid-template-columns: 350px 1fr;
+        gap: 20px;
+        animation: fadeIn 0.8s ease;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      @media (max-width: 992px) {
+        .dashboard {
+          grid-template-columns: 1fr;
+        }
+      }
+      
+      .analysis-controls {
+        background-color: white;
+        border-radius: 12px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        padding: 20px;
+        position: sticky;
+        top: 20px;
+        height: fit-content;
+      }
+
+      .webcam-container {
+        margin-bottom: 20px;
+      }
+
+      #webcam {
+        width: 100%;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+      }
+
+      #canvas {
+        display: block;
+        margin-top: 15px;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        transition: all 0.3s ease;
+      }
+
+      .controls {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+      }
+
+      .btn {
+        background-color: #3a86ff;
+        color: white;
+        border: none;
+        padding: 12px 20px;
+        font-size: 1rem;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        position: relative;
+        overflow: hidden;
+        flex-grow: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .btn::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.2),
+          transparent
+        );
+        transition: 0.5s;
+      }
+
+      .btn:hover::after {
+        left: 100%;
+      }
+
+      .btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 7px 14px rgba(0, 0, 0, 0.15);
+      }
+
+      .btn:active {
+        transform: translateY(1px);
+      }
+
+      .btn:disabled {
+        background-color: #cccccc;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+
+      .btn-danger {
+        background: linear-gradient(135deg, #ff3366 0%, #ff5e5b 100%);
+      }
+
+      .btn-success {
+        background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+      }
+
+      .result-panel {
+        background-color: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+      }
+
+      .result-panel.pulse {
+        animation: pulse 0.5s;
+      }
+
+      @keyframes pulse {
+        0% {
+          box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        }
+        50% {
+          box-shadow: 0 5px 20px rgba(58, 134, 255, 0.3);
+        }
+        100% {
+          box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        }
+      }
+
+      .status-indicator {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 15px;
+        font-weight: bold;
+      }
+
+      .status-dot {
+        height: 12px;
+        width: 12px;
+        background-color: #cccccc;
+        border-radius: 50%;
+        transition: background-color 0.3s ease;
+      }
+
+      .status-dot.active {
+        background-color: #4caf50;
+        box-shadow: 0 0 8px rgba(76, 175, 80, 0.5);
+        animation: pulse-status 1.5s infinite;
+      }
+
+      .status-dot.processing {
+        background-color: #ffc107;
+        box-shadow: 0 0 8px rgba(255, 193, 7, 0.5);
+        animation: pulse-status 0.8s infinite;
+      }
+
+      .status-dot.error {
+        background-color: #ff3366;
+        box-shadow: 0 0 8px rgba(255, 51, 102, 0.5);
+      }
+
+      @keyframes pulse-status {
+        0% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.2);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+
+      .error-message {
+        color: #e63946;
+        background-color: #ffdde1;
+        padding: 10px;
+        border-radius: 8px;
+        margin-top: 10px;
+        display: none;
+        animation: fadeIn 0.3s ease;
+        box-shadow: 0 2px 5px rgba(230, 57, 70, 0.2);
+      }
+
+      .result-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+      }
+
+      .face-card {
+        background-color: #f9f9f9;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+        transform: translateY(0);
+        width: calc(33.333% - 20px);
+        min-width: 250px;
+        position: relative;
+        overflow: hidden;
+        animation: fadeInUp 0.5s ease;
+      }
+
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .face-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+      }
+
+      .face-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+        background: linear-gradient(to bottom, #3a86ff, #5e60ce);
+        border-radius: 4px 0 0 4px;
+      }
+
+      .face-card h3 {
+        font-size: 1.3rem;
+        margin-bottom: 15px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 10px;
+      }
+
+      .attributes-list {
+        margin-top: 15px;
+      }
+
+      .attribute {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid #eee;
+        transition: background-color 0.2s ease;
+      }
+
+      .attribute:hover {
+        background-color: #f0f0f0;
+        border-radius: 4px;
+        padding-left: 5px;
+        padding-right: 5px;
+      }
+
+      .attribute-name {
+        font-weight: 600;
+      }
+
+      .emotion-bar {
+        height: 20px;
+        background-color: #e9ecef;
+        border-radius: 4px;
+        margin-top: 5px;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .emotion-value {
+        height: 100%;
+        background: linear-gradient(to right, #3a86ff, #5e60ce);
+        border-radius: 4px;
+        transition: width 0.5s ease-out;
+      }
+
+      .emotion-value.primary {
+        background: linear-gradient(to right, #ff3366, #ff5e5b);
+      }
+
+      .analysis-settings {
+        background-color: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        margin-bottom: 20px;
+      }
+
+      .analysis-settings h3 {
+        margin-bottom: 15px;
+        color: #3a86ff;
+      }
+
+      .interval-setting {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .interval-value {
+        min-width: 50px;
+        text-align: center;
+        font-weight: bold;
+        color: #3a86ff;
+        background: #f0f7ff;
+        padding: 5px 10px;
+        border-radius: 20px;
+      }
+
+      .timestamp {
+        font-size: 0.85rem;
+        color: #666;
+        font-style: italic;
+        margin-top: 5px;
+      }
+
+      @media (max-width: 768px) {
+        .face-card {
+          width: 100%;
+        }
+      }
+
+      .face-detection-section {
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #eee;
+      }
+
+      .face-detection-header {
+        margin-bottom: 20px;
+        text-align: center;
+      }
+
+      /* Timer styles */
+      .quiz-timer-container {
+        text-align: center;
+        margin-bottom: 20px;
+        padding: 10px;
+        background-color: #f0f8ff;
+        border-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
+
+      .quiz-timer-label {
+        font-weight: bold;
+        margin-right: 10px;
+      }
+
+      #quiz-timer {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #007bff;
+      }
+
+      .timer-warning {
+        color: #dc3545 !important;
+        animation: pulse 1s infinite;
+      }
+
+      /* Results styles */
+      .results-container {
+        background-color: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        margin-top: 20px;
+        animation: fadeIn 0.5s ease;
+      }
+
+      .score-display {
+        text-align: center;
+        margin: 20px 0;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+      }
+
+      .score-display p {
+        margin: 10px 0;
+        font-size: 1.2rem;
+      }
+
+      .state-statistics {
+        margin: 20px 0;
+        padding: 15px;
+        background-color: #f0f8ff;
+        border-radius: 5px;
+      }
+
+      .state-statistics h3 {
+        margin-bottom: 15px;
+        color: #333;
+      }
+
+      .state-statistics p {
+        margin: 10px 0;
+        font-size: 1.1rem;
+      }
+
+      #restart-btn {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        padding: 12px 20px;
+        font-size: 16px;
+        border-radius: 5px;
+        cursor: pointer;
+        display: block;
+        margin: 20px auto 0;
+        transition: background-color 0.3s;
+      }
+
+      #restart-btn:hover {
+        background-color: #0056b3;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Student State and Emotion Detection</h1>
+        <div id="state-indicator">
+          <p>Student States:</p>
+          <p id="restless-indicator">Restlessness: <span>Not detected</span></p>
+          <p id="confused-indicator">Confusion: <span>Not detected</span></p>
+          <p id="bored-indicator">Boredom: <span>Not detected</span></p>
+        </div>
+      </div>
+
+      <div class="quiz-container">
+        <h2>Modern Physics Quiz</h2>
+
+        <div class="quiz-timer-container">
+          <span class="quiz-timer-label">Time Remaining:</span>
+          <span id="quiz-timer">05:00</span>
+        </div>
+
+        <div class="question">
+          <h3>
+            Question 1: What does Heisenberg's Uncertainty Principle state?
+          </h3>
+          <div class="options">
+            <label>
+              <input type="radio" name="q1" value="A" /> A) Energy is always
+              conserved in isolated systems
+            </label>
+            <label>
+              <input type="radio" name="q1" value="B" /> B) The speed of light
+              is constant in all reference frames
+            </label>
+            <label>
+              <input type="radio" name="q1" value="C" /> C) It's impossible to
+              know both the position and momentum of a particle with perfect
+              precision
+            </label>
+            <label>
+              <input type="radio" name="q1" value="D" /> D) Matter and energy
+              are equivalent
+            </label>
+          </div>
+        </div>
+
+        <div class="question">
+          <h3>
+            Question 2: Who developed the first quantum model of the atom with
+            electron orbits?
+          </h3>
+          <div class="options">
+            <label>
+              <input type="radio" name="q2" value="A" /> A) Niels Bohr
+            </label>
+            <label>
+              <input type="radio" name="q2" value="B" /> B) Albert Einstein
+            </label>
+            <label>
+              <input type="radio" name="q2" value="C" /> C) Max Planck
+            </label>
+            <label>
+              <input type="radio" name="q2" value="D" /> D) Erwin Schrödinger
+            </label>
+          </div>
+        </div>
+
+        <div class="question">
+          <h3>
+            Question 3: What concept describes how light can behave as both a
+            particle and a wave?
+          </h3>
+          <div class="options">
+            <label>
+              <input type="radio" name="q3" value="A" /> A) Relativity
+            </label>
+            <label>
+              <input type="radio" name="q3" value="B" /> B) Wave-particle
+              duality
+            </label>
+            <label>
+              <input type="radio" name="q3" value="C" /> C) Quantum entanglement
+            </label>
+            <label>
+              <input type="radio" name="q3" value="D" /> D) Pauli exclusion
+              principle
+            </label>
+          </div>
+        </div>
+
+        <div class="question">
+          <h3>
+            Question 4: In what year did Einstein publish his Special Theory of
+            Relativity?
+          </h3>
+          <div class="options">
+            <label> <input type="radio" name="q4" value="A" /> A) 1895 </label>
+            <label> <input type="radio" name="q4" value="B" /> B) 1900 </label>
+            <label> <input type="radio" name="q4" value="C" /> C) 1902 </label>
+            <label> <input type="radio" name="q4" value="D" /> D) 1905 </label>
+          </div>
+        </div>
+
+        <div class="question">
+          <h3>
+            Question 5: What problem in physics led Max Planck to propose
+            quantum theory?
+          </h3>
+          <div class="options">
+            <label>
+              <input type="radio" name="q5" value="A" /> A) The photoelectric
+              effect
+            </label>
+            <label>
+              <input type="radio" name="q5" value="B" /> B) Blackbody radiation
+            </label>
+            <label>
+              <input type="radio" name="q5" value="C" /> C) Atomic spectra
+            </label>
+            <label>
+              <input type="radio" name="q5" value="D" /> D) Brownian motion
+            </label>
+          </div>
+        </div>
+
+        <button id="submit-btn">Submit Quiz</button>
+      </div>
+
+      <!-- Face Detection Section - Integrated from face.html -->
+      <div class="face-detection-section">
+        <div class="face-detection-header">
+          <h2>Live Face Emotion Detection</h2>
+          <p>Real-time emotion analysis</p>
+        </div>
+
+        <div class="dashboard">
+          <div class="analysis-controls">
+            <div class="analysis-settings">
+              <h3>Analysis Settings</h3>
+              <div class="interval-setting">
+                <label for="intervalSlider">Analysis Interval:</label>
+                <input
+                  type="range"
+                  id="intervalSlider"
+                  min="1"
+                  max="10"
+                  value="3"
+                  step="0.5"
+                />
+                <span id="intervalValue" class="interval-value">3s</span>
+              </div>
+            </div>
+
+            <div class="status-indicator">
+              <div id="statusDot" class="status-dot"></div>
+              <span id="statusText">Waiting to start</span>
+            </div>
+
+            <div class="webcam-container">
+              <video id="webcam" autoplay playsinline></video>
+              <canvas id="canvas"></canvas>
+            </div>
+
+            <div class="controls">
+              <button id="startBtn" class="btn btn-success">
+                Start Live Analysis
+              </button>
+              <button id="stopBtn" class="btn btn-danger" disabled>
+                Stop Analysis
+              </button>
+            </div>
+            <div id="errorMessage" class="error-message"></div>
+          </div>
+
+          <section id="resultPanel" class="result-panel">
+            <h2>Analysis Results</h2>
+            <p class="timestamp" id="lastAnalysisTime"></p>
+            <div id="resultContainer" class="result-container">
+              <p>Start the live analysis to see emotion detection results.</p>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <script src="studentState.js"></script>
+    <script>
+      // API Credentials (pre-integrated)
+      const API_KEY = "MQvQctmu-OCUaQ95p1L5V4dEhd14pZ6D";
+      const API_SECRET = "UQkSJPrw0wu4rPVEHwukpzZqPKpPAK5v";
+
+      // DOM Elements
+      const startBtn = document.getElementById("startBtn");
+      const stopBtn = document.getElementById("stopBtn");
+      const webcamElement = document.getElementById("webcam");
+      const canvasElement = document.getElementById("canvas");
+      const resultContainer = document.getElementById("resultContainer");
+      const resultPanel = document.getElementById("resultPanel");
+      const errorMessage = document.getElementById("errorMessage");
+      const statusDot = document.getElementById("statusDot");
+      const statusText = document.getElementById("statusText");
+      const intervalSlider = document.getElementById("intervalSlider");
+      const intervalValue = document.getElementById("intervalValue");
+      const lastAnalysisTime = document.getElementById("lastAnalysisTime");
+
+      // Global variables
+      let stream = null;
+      let analysisInterval = null;
+      let isProcessing = false;
+      let analysisIntervalTime = 3000; // Default: 3 seconds
+
+      // Event Listeners
+      startBtn.addEventListener("click", startLiveAnalysis);
+      stopBtn.addEventListener("click", stopLiveAnalysis);
+      intervalSlider.addEventListener("input", updateIntervalTime);
+
+      // Update interval time display
+      function updateIntervalTime() {
+        analysisIntervalTime = intervalSlider.value * 1000;
+        intervalValue.textContent = `${intervalSlider.value}s`;
+
+        // If analysis is already running, restart with new interval
+        if (analysisInterval) {
+          clearInterval(analysisInterval);
+          analysisInterval = setInterval(
+            analyzeCurrentFrame,
+            analysisIntervalTime
+          );
+        }
+      }
+
+      // Initialize webcam on page load
+      initializeWebcam();
+
+      // Initialize webcam
+      function initializeWebcam() {
+        navigator.mediaDevices
+          .getUserMedia({
+            video: {
+              width: { ideal: 640 },
+              height: { ideal: 480 },
+              facingMode: "user",
+            },
+          })
+          .then(function (mediaStream) {
+            stream = mediaStream;
+            webcamElement.srcObject = mediaStream;
+
+            // Set canvas size after video metadata is loaded
+            webcamElement.onloadedmetadata = function () {
+              canvasElement.width = webcamElement.videoWidth;
+              canvasElement.height = webcamElement.videoHeight;
+            };
+
+            hideError();
+          })
+          .catch(function (err) {
+            showError("Error accessing webcam: " + err.message);
+            console.error("Error accessing webcam:", err);
+            updateStatus("error", "Webcam access error");
+          });
+      }
+
+      // Start live analysis
+      function startLiveAnalysis() {
+        if (!stream) {
+          initializeWebcam();
+          showError("Waiting for webcam access. Please try again in a moment.");
+          return;
+        }
+
+        // Update UI
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+        resultContainer.innerHTML = "<p>Starting analysis...</p>";
+        updateStatus("active", "Analysis started");
+
+        // Start the interval for continuous analysis
+        analyzeCurrentFrame(); // Run once immediately
+        analysisInterval = setInterval(
+          analyzeCurrentFrame,
+          analysisIntervalTime
+        );
+      }
+
+      // Stop live analysis
+      function stopLiveAnalysis() {
+        clearInterval(analysisInterval);
+        analysisInterval = null;
+
+        // Update UI
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+        updateStatus("", "Analysis stopped");
+      }
+
+      // Analyze current video frame
+      function analyzeCurrentFrame() {
+        if (isProcessing) {
+          return; // Skip if still processing previous frame
+        }
+
+        isProcessing = true;
+        updateStatus("processing", "Processing...");
+
+        // Set canvas dimensions to match video
+        canvasElement.width = webcamElement.videoWidth;
+        canvasElement.height = webcamElement.videoHeight;
+
+        // Draw the current video frame to the canvas
+        const ctx = canvasElement.getContext("2d");
+        ctx.drawImage(
+          webcamElement,
+          0,
+          0,
+          canvasElement.width,
+          canvasElement.height
+        );
+
+        // Convert canvas to blob
+        canvasElement.toBlob(
+          function (blob) {
+            // Create form data for API request
+            const formData = new FormData();
+            formData.append("api_key", API_KEY);
+            formData.append("api_secret", API_SECRET);
+            formData.append("image_file", blob, "webcam.jpg");
+            formData.append(
+              "return_attributes",
+              "gender,age,smiling,emotion,beauty"
+            );
+
+            // Send to Face++ API
+            fetch("https://api-us.faceplusplus.com/facepp/v3/detect", {
+              method: "POST",
+              body: formData,
+            })
+              .then((response) => {
+                if (!response.ok) {
+                  return response.json().then((errorData) => {
+                    throw new Error(
+                      `API Error: ${errorData.error_message || "Unknown error"}`
+                    );
+                  });
+                }
+                return response.json();
+              })
+              .then((data) => {
+                displayResults(data, ctx);
+                const currentTime = new Date().toLocaleTimeString();
+                lastAnalysisTime.textContent = `Last analyzed: ${currentTime}`;
+                updateStatus("active", "Analysis active");
+
+                // Add pulse animation to the result panel
+                resultPanel.classList.add("pulse");
+                setTimeout(() => resultPanel.classList.remove("pulse"), 500);
+              })
+              .catch((error) => {
+                showError(`Error analyzing the image: ${error.message}`);
+                console.error("API Error:", error);
+                updateStatus("error", "Analysis error");
+              })
+              .finally(() => {
+                isProcessing = false;
+              });
+          },
+          "image/jpeg",
+          0.92
+        );
+      }
+
+      // Display the analysis results
+      function displayResults(data, ctx) {
+        resultContainer.innerHTML = "";
+
+        if (!data.faces || data.faces.length === 0) {
+          resultContainer.innerHTML =
+            "<p>No faces detected in the current frame.</p>";
+          return;
+        }
+
+        // Draw rectangles on the captured image
+        data.faces.forEach((face, index) => {
+          const rect = face.face_rectangle;
+
+          // Draw rectangle
+          ctx.strokeStyle = "#3a86ff";
+          ctx.lineWidth = 3;
+          ctx.strokeRect(rect.left, rect.top, rect.width, rect.height);
+
+          // Add face number
+          ctx.fillStyle = "#3a86ff";
+          ctx.font = "bold 16px Arial";
+          ctx.fillText(
+            `Face ${index + 1}`,
+            rect.left,
+            Math.max(rect.top - 5, 15)
+          );
+        });
+
+        // Update emotion counts for each detected face
+        data.faces.forEach((face) => {
+          if (face.attributes && face.attributes.emotion) {
+            updateEmotionCounts(face.attributes.emotion);
+          }
+        });
+
+        // Create cards for each detected face
+        data.faces.forEach((face, index) => {
+          const faceCard = document.createElement("div");
+          faceCard.className = "face-card";
+          // Stagger animation
+          faceCard.style.animationDelay = `${index * 0.1}s`;
+
+          // Create face card header
+          const faceTitle = document.createElement("h3");
+          faceTitle.textContent = `Face ${index + 1}`;
+
+          const attributesList = document.createElement("div");
+          attributesList.className = "attributes-list";
+
+          // Add demographic info
+          addAttribute(attributesList, "Gender", face.attributes.gender.value);
+          addAttribute(attributesList, "Age", face.attributes.age.value);
+          addAttribute(
+            attributesList,
+            "Smile",
+            `${Math.round(face.attributes.smile.value)}%`
+          );
+
+          // Add emotions with progress bars
+          const emotionTitle = document.createElement("h4");
+          emotionTitle.textContent = "Emotions";
+          emotionTitle.style.marginTop = "15px";
+          emotionTitle.style.marginBottom = "10px";
+          attributesList.appendChild(emotionTitle);
+
+          const emotions = face.attributes.emotion;
+          const sortedEmotions = Object.entries(emotions).sort(
+            (a, b) => b[1] - a[1]
+          );
+
+          sortedEmotions.forEach(([emotion, value], emoIndex) => {
+            const emotionDiv = document.createElement("div");
+            emotionDiv.className = "emotion-attribute";
+            emotionDiv.style.marginBottom = "10px";
+            // Stagger animation of bars
+            emotionDiv.style.animationDelay = `${
+              index * 0.1 + emoIndex * 0.05
+            }s`;
+
+            const labelDiv = document.createElement("div");
+            labelDiv.style.display = "flex";
+            labelDiv.style.justifyContent = "space-between";
+
+            const nameSpan = document.createElement("span");
+            nameSpan.className = "attribute-name";
+            nameSpan.textContent = capitalizeFirstLetter(emotion);
+
+            const valueSpan = document.createElement("span");
+            valueSpan.textContent = `${Math.round(value)}%`;
+
+            labelDiv.appendChild(nameSpan);
+            labelDiv.appendChild(valueSpan);
+
+            const barContainer = document.createElement("div");
+            barContainer.className = "emotion-bar";
+
+            const barValue = document.createElement("div");
+            barValue.className = "emotion-value";
+            // Set width to 0 initially for animation
+            barValue.style.width = "0%";
+
+            // Add primary class for dominant emotion
+            if (emotion === sortedEmotions[0][0]) {
+              barValue.classList.add("primary");
+            }
+
+            barContainer.appendChild(barValue);
+
+            emotionDiv.appendChild(labelDiv);
+            emotionDiv.appendChild(barContainer);
+            attributesList.appendChild(emotionDiv);
+
+            // Animate the bar width after a small delay
+            setTimeout(() => {
+              barValue.style.width = `${value}%`;
+            }, 50 + emoIndex * 50);
+          });
+
+          // Assemble the face card
+          faceCard.appendChild(faceTitle);
+          faceCard.appendChild(attributesList);
+          resultContainer.appendChild(faceCard);
+        });
+      }
+
+      // Helper function to add an attribute to the list
+      function addAttribute(container, name, value) {
+        const attributeDiv = document.createElement("div");
+        attributeDiv.className = "attribute";
+
+        const nameSpan = document.createElement("span");
+        nameSpan.className = "attribute-name";
+        nameSpan.textContent = name;
+
+        const valueSpan = document.createElement("span");
+        valueSpan.className = "attribute-value";
+        valueSpan.textContent = value;
+
+        attributeDiv.appendChild(nameSpan);
+        attributeDiv.appendChild(valueSpan);
+        container.appendChild(attributeDiv);
+      }
+
+      // Helper function to capitalize first letter
+      function capitalizeFirstLetter(string) {
+        return string.charAt(0).toUpperCase() + string.slice(1);
+      }
+
+      // Show error message
+      function showError(message) {
+        errorMessage.textContent = message;
+        errorMessage.style.display = "block";
+      }
+
+      // Hide error message
+      function hideError() {
+        errorMessage.style.display = "none";
+      }
+
+      // Update status indicator
+      function updateStatus(status, message) {
+        statusDot.className = "status-dot";
+        if (status) {
+          statusDot.classList.add(status);
+        }
+        statusText.textContent = message;
+      }
+
+      // Add this at the beginning of your script section
+      document.addEventListener("DOMContentLoaded", function () {
+        // Wait for 2 seconds to ensure everything is loaded
+        setTimeout(function () {
+          // Find and click the start analysis button
+          const startButton = document.querySelector(".btn-success");
+          if (startButton) {
+            startButton.click();
+          }
+        }, 2000);
+      });
+    </script>
+  </body>
+</html>

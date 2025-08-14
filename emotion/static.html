@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Projectile Motion Simulator</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            padding: 20px;
+            max-width: 1000px;
+            width: 95%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #00ff88;
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+            margin-bottom: 30px;
+        }
+
+        canvas {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+            margin-bottom: 20px;
+        }
+
+        .controls {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        label {
+            color: #00ff88;
+            font-size: 0.9em;
+        }
+
+        input[type="number"] {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #00ff88;
+            border-radius: 5px;
+            padding: 8px;
+            color: white;
+            width: 100%;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #00ff88;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            min-width: 100px;
+        }
+
+        #shootButton {
+            background: #00ff88;
+            color: #1a1a2e;
+        }
+
+        #pauseButton {
+            background: #ff9100;
+            color: #1a1a2e;
+        }
+
+        #resetButton {
+            background: #ff3366;
+            color: white;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .info-panel {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .info-item {
+            text-align: center;
+            padding: 10px;
+            background: rgba(0, 255, 136, 0.1);
+            border-radius: 5px;
+        }
+
+        .stats-label {
+            font-size: 0.8em;
+            color: #00ff88;
+        }
+
+        .stats-value {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        #trail-toggle {
+            background: #4a90e2;
+            color: white;
+        }
+        .guidance-panel {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .step-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .step-item {
+            padding: 15px;
+            margin: 10px 0;
+            background: rgba(0, 255, 136, 0.1);
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .step-item.completed {
+            background: rgba(0, 255, 136, 0.3);
+            border-left: 5px solid #00ff88;
+        }
+
+        .step-number {
+            width: 30px;
+            height: 30px;
+            background: #1a1a2e;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+        }
+
+        .feedback-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #16213e;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            z-index: 1000;
+            display: none;
+        }
+
+        .feedback-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .hint-button {
+            background: #4a90e2;
+            color: white;
+        }
+        /* Remove all chatbot-related CSS from here */
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Advanced Projectile Motion Simulator</h1>
+        <canvas id="projectileCanvas" width="1000" height="500"></canvas>
+        
+
+        <div class="button-group" style="margin-bottom: 20px;">
+            <button class="hint-button" id="showHints">SHOW HINTS</button>
+            <button class="hint-button" id="showSuggestions">SHOW SUGGESTIONS</button>
+            <button class="hint-button" id="showTips">SHOW TIPS</button>
+        </div>
+
+        <div class="guidance-panel">
+            <h3>Learning Steps <span style="font-size:0.8em;color:#00ff88">(Complete all steps)</span></h3>
+            <ul class="step-list" id="stepList">
+                <li class="step-item" data-step="1">
+                    <div class="step-number">1</div>
+                    <div>
+                        <strong>Set Initial Parameters:</strong> Adjust the launch height, velocity, and angle using the controls.
+                        <div class="step-reason">Why: These parameters determine the projectile's trajectory.</div>
+                    </div>
+                </li>
+                <li class="step-item" data-step="2">
+                    <div class="step-number">2</div>
+                    <div>
+                        <strong>Launch the Projectile:</strong> Click the LAUNCH button to start the simulation.
+                        <div class="step-reason">Why: Observing motion helps understand kinematic relationships.</div>
+                    </div>
+                </li>
+                <li class="step-item" data-step="3">
+                    <div class="step-number">3</div>
+                    <div>
+                        <strong>Analyze Trajectory:</strong> Note the path and maximum height.
+                        <div class="step-reason">Why: Trajectory shape depends on initial velocity components.</div>
+                    </div>
+                </li>
+                <li class="step-item" data-step="4">
+                    <div class="step-number">4</div>
+                    <div>
+                        <strong>Review Statistics:</strong> Check time of flight, range, and velocity.
+                        <div class="step-reason">Why: Quantitative analysis verifies theoretical predictions.</div>
+                    </div>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Add feedback modal -->
+        <div class="feedback-modal" id="feedbackModal">
+            <h3>Concept Check Question <span style="float:right;cursor:pointer" onclick="document.getElementById('feedbackModal').style.display='none'">×</span></h3>
+            <p>How does launch angle affect maximum height when initial velocity is constant?</p>
+            <div class="feedback-buttons">
+                <button onclick="checkAnswer(1)">A) Increases height</button>
+                <button onclick="checkAnswer(2)">B) Decreases height</button>
+                <button onclick="checkAnswer(3)">C) No effect</button>
+            </div>
+            <div id="feedbackText" style="margin-top:15px;"></div>
+        </div>
+
+
+
+        <div class="controls">
+            <div class="control-group">
+                <label for="launchHeight">Initial Height (m)</label>
+                <input type="number" id="launchHeight" value="4" step="0.1" min="0">
+            </div>
+            <div class="control-group">
+                <label for="launchVelocity">Initial Velocity (m/s)</label>
+                <input type="number" id="launchVelocity" value="7" step="0.1" min="0">
+            </div>
+            <div class="control-group">
+                <label for="launchAngle">Launch Angle (°)</label>
+                <input type="number" id="launchAngle" value="45" step="1" min="0" max="90">
+            </div>
+            <div class="control-group">
+                <label for="speedSlider">Animation Speed: <span id="speedValue">1.0</span>x</label>
+                <input type="range" id="speedSlider" min="0.1" max="3" step="0.1" value="1">
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button id="shootButton">LAUNCH</button>
+            <button id="pauseButton">PAUSE</button>
+            <button id="resetButton">RESET</button>
+            <button id="trail-toggle">TOGGLE TRAIL</button>
+        </div>
+
+        <div class="info-panel">
+            <div class="info-item">
+                <div class="stats-label">Time of Flight</div>
+                <div class="stats-value" id="timeValue">0.00 s</div>
+            </div>
+            <div class="info-item">
+                <div class="stats-label">Current Height</div>
+                <div class="stats-value" id="heightValue">0.00 m</div>
+            </div>
+            <div class="info-item">
+                <div class="stats-label">Distance</div>
+                <div class="stats-value" id="distanceValue">0.00 m</div>
+            </div>
+            <div class="info-item">
+                <div class="stats-label">Velocity</div>
+                <div class="stats-value" id="velocityValue">0.00 m/s</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('projectileCanvas');
+        const ctx = canvas.getContext('2d');
+        const g = 9.81;
+        const scale = 40;
+
+        let y0 = 4, v0 = 7, theta = 45;
+        let isPaused = false, showTrail = true;
+        let animationFrameId;
+        let t = 0, speed = 1;
+        let trail = [];
+        const maxTrailLength = 50;
+
+
+
+         // Add these new variables
+         let currentStep = 1;
+        let questionAsked = false;
+
+        // Add these new functions
+        function updateSteps() {
+            document.querySelectorAll('.step-item').forEach((item, index) => {
+                if (index + 1 <= currentStep) {
+                    item.classList.add('completed');
+                }
+            });
+        }
+
+        function showFeedbackModal() {
+            document.getElementById('feedbackModal').style.display = 'block';
+            questionAsked = true;
+        }
+
+        function checkAnswer(selected) {
+            const feedbackText = document.getElementById('feedbackText');
+            feedbackText.style.color = '#00ff88';
+            
+            if(selected === 1) {
+                feedbackText.innerHTML = `Correct! ✅<br>Maximum height is given by (v₀²sin²θ)/(2g), which increases with angle up to 90°.`;
+            } else {
+                feedbackText.innerHTML = `Incorrect! ❌<br>Remember the vertical component of velocity is v₀sinθ. 
+                Higher angles mean more vertical component, leading to greater height.`;
+            }
+            
+            setTimeout(() => {
+                document.getElementById('feedbackModal').style.display = 'none';
+            }, 3000);
+        }
+
+
+        function drawGrid() {
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.lineWidth = 0.5;
+
+            // Draw vertical grid lines
+            for (let x = 0; x <= canvas.width; x += scale) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+
+            // Draw horizontal grid lines
+            for (let y = 0; y <= canvas.height; y += scale) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+        }
+
+        function drawGround() {
+            const groundY = canvas.height - 10;
+            ctx.beginPath();
+            ctx.moveTo(0, groundY);
+            ctx.lineTo(canvas.width, groundY);
+            ctx.strokeStyle = '#00ff88';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Draw ground texture
+            for (let x = 0; x < canvas.width; x += 20) {
+                ctx.beginPath();
+                ctx.moveTo(x, groundY);
+                ctx.lineTo(x + 10, groundY + 5);
+                ctx.strokeStyle = 'rgba(0, 255, 136, 0.5)';
+                ctx.stroke();
+            }
+        }
+
+        function drawTrajectory() {
+            const rad = theta * Math.PI / 180;
+            const v0x = v0 * Math.cos(rad);
+            const v0y = v0 * Math.sin(rad);
+            const t_flight = (v0y + Math.sqrt(v0y ** 2 + 2 * g * y0)) / g;
+
+            ctx.beginPath();
+            ctx.setLineDash([5, 5]);
+            ctx.moveTo(0, canvas.height - y0 * scale);
+            
+            for (let t = 0; t <= t_flight; t += 0.1) {
+                const x = v0x * t;
+                const y = y0 + v0y * t - 0.5 * g * t ** 2;
+                ctx.lineTo(x * scale, canvas.height - y * scale);
+            }
+
+            ctx.strokeStyle = 'rgba(0, 255, 136, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        function drawProjectile(x, y) {
+            // Draw shadow
+            ctx.beginPath();
+            ctx.ellipse(x * scale, canvas.height - 10, 10, 4, 0, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.fill();
+
+            // Draw projectile
+            ctx.beginPath();
+            ctx.arc(x * scale, canvas.height - y * scale, 8, 0, Math.PI * 2);
+            const gradient = ctx.createRadialGradient(
+                x * scale - 3, canvas.height - y * scale - 3, 0,
+                x * scale, canvas.height - y * scale, 8
+            );
+            gradient.addColorStop(0, '#fff');
+            gradient.addColorStop(1, '#00ff88');
+            ctx.fillStyle = gradient;
+            ctx.fill();
+            ctx.strokeStyle = '#00ff88';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Add motion blur effect
+            if (showTrail) {
+                trail.forEach((pos, index) => {
+                    const alpha = index / trail.length * 0.3;
+                    ctx.beginPath();
+                    ctx.arc(pos.x * scale, canvas.height - pos.y * scale, 4, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(0, 255, 136, ${alpha})`;
+                    ctx.fill();
+                });
+            }
+        }
+
+        function updateInfoPanel(x, y, time) {
+            const rad = theta * Math.PI / 180;
+            const v0x = v0 * Math.cos(rad);
+            const v0y = v0 * Math.sin(rad);
+            const vy = v0y - g * time;
+            const currentVelocity = Math.sqrt(v0x * v0x + vy * vy);
+
+            document.getElementById('timeValue').textContent = `${time.toFixed(2)} s`;
+            document.getElementById('heightValue').textContent = `${y.toFixed(2)} m`;
+            document.getElementById('distanceValue').textContent = `${x.toFixed(2)} m`;
+            document.getElementById('velocityValue').textContent = `${currentVelocity.toFixed(2)} m/s`;
+        }
+
+        function animate() {
+    if (isPaused) return;
+
+    const rad = theta * Math.PI / 180;
+    const v0x = v0 * Math.cos(rad);
+    const v0y = v0 * Math.sin(rad);
+    const t_flight = (v0y + Math.sqrt(v0y ** 2 + 2 * g * y0)) / g;
+
+    // Simulation end condition
+    if (t > t_flight) {
+        cancelAnimationFrame(animationFrameId);
+        
+        // Show feedback modal if not already shown
+        if (!questionAsked) {
+            showFeedbackModal();
+            currentStep = 4; // Mark final step as complete
+            updateSteps();
+        }
+        return;
+    }
+
+    // Calculate current position
+    const x = v0x * t;
+    const y = y0 + v0y * t - 0.5 * g * t ** 2;
+
+    // Update trail
+    trail.push({ x, y });
+    if (trail.length > maxTrailLength) {
+        trail.shift();
+    }
+
+    // Clear and redraw canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawGrid();
+    drawGround();
+    drawTrajectory();
+    drawProjectile(x, y);
+    updateInfoPanel(x, y, t);
+
+    // Real-time feedback and step tracking
+    if (t > 0 && currentStep < 2) {
+        currentStep = 2;
+        updateSteps();
+        showTemporaryMessage("Projectile launched! Observe the trajectory.", "#00ff88");
+    }
+
+    if (y > y0 && currentStep < 3) {
+        currentStep = 3;
+        updateSteps();
+        showTemporaryMessage("Projectile ascending! Note the maximum height.", "#4a90e2");
+    }
+
+    if (y < y0 && currentStep < 4) {
+        currentStep = 4;
+        updateSteps();
+        showTemporaryMessage("Projectile descending! Watch for landing.", "#ff9100");
+    }
+
+    // Real-time velocity warning
+    if (v0 > 15 && !document.querySelector('.speed-warning')) {
+        const warning = document.createElement('div');
+        warning.className = 'speed-warning';
+        warning.style.color = '#ff3366';
+        warning.textContent = 'Tip: High velocities may make the animation less precise!';
+        document.querySelector('.controls').appendChild(warning);
+    }
+
+    // Update time and request next frame
+    t += 0.05 * speed;
+    animationFrameId = requestAnimationFrame(animate);
+
+    // Helper function for temporary messages
+    function showTemporaryMessage(message, color) {
+        const msg = document.createElement('div');
+        msg.style.position = 'fixed';
+        msg.style.bottom = '20px';
+        msg.style.left = '50%';
+        msg.style.transform = 'translateX(-50%)';
+        msg.style.backgroundColor = color;
+        msg.style.color = '#1a1a2e';
+        msg.style.padding = '10px 20px';
+        msg.style.borderRadius = '5px';
+        msg.style.zIndex = '1000';
+        msg.textContent = message;
+        document.body.appendChild(msg);
+
+        setTimeout(() => {
+            msg.style.opacity = '0';
+            msg.style.transition = 'opacity 1s';
+            setTimeout(() => msg.remove(), 1000);
+        }, 2000);
+    }
+}
+
+        document.getElementById('shootButton').addEventListener('click', () => {
+            y0 = parseFloat(document.getElementById('launchHeight').value);
+            v0 = parseFloat(document.getElementById('launchVelocity').value);
+            theta = parseFloat(document.getElementById('launchAngle').value);
+            isPaused = false;
+            t = 0;
+            trail = [];
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            animate();
+        });
+
+        document.getElementById('pauseButton').addEventListener('click', () => {
+            isPaused = !isPaused;
+            document.getElementById('pauseButton').textContent = isPaused ? 'RESUME' : 'PAUSE';
+            if (!isPaused) animate();
+        });
+
+        document.getElementById('resetButton').addEventListener('click', () => {
+            document.getElementById('launchHeight').value = 4;
+            document.getElementById('launchVelocity').value = 7;
+            document.getElementById('launchAngle').value = 45;
+            document.getElementById('speedSlider').value = 1;
+            document.getElementById('speedValue').textContent = "1.0";
+            y0 = 4;
+            v0 = 7;
+            theta = 45;
+            speed = 1;
+            isPaused = false;
+            t = 0;
+            trail = [];
+            currentStep = 1; // Add this
+            questionAsked = false; // Add this
+            updateSteps(); // Add this
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawGrid();
+            drawGround();
+            drawTrajectory();
+            updateInfoPanel(0, y0, 0);
+        });
+
+        document.getElementById('trail-toggle').addEventListener('click', () => {
+            showTrail = !showTrail;
+            document.getElementById('trail-toggle').textContent = showTrail ? 'HIDE TRAIL' : 'SHOW TRAIL';
+            document.getElementById('trail-toggle').style.background = showTrail ? '#4a90e2' : '#666';
+        });
+
+        document.getElementById('speedSlider').addEventListener('input', (event) => {
+            speed = parseFloat(event.target.value);
+            document.getElementById('speedValue').textContent = speed.toFixed(1);
+        });
+
+        // Add keyboard controls
+        document.addEventListener('keydown', (event) => {
+            switch(event.key) {
+                case ' ':  // Space bar
+                    document.getElementById('shootButton').click();
+                    break;
+                case 'p':  // P key
+                    document.getElementById('pauseButton').click();
+                    break;
+                case 'r':  // R key
+                    document.getElementById('resetButton').click();
+                    break;
+                case 't':  // T key
+                    document.getElementById('trail-toggle').click();
+                    break;
+                case 'ArrowUp':
+                    if (event.shiftKey) {
+                        const vel = parseFloat(document.getElementById('launchVelocity').value);
+                        document.getElementById('launchVelocity').value = (vel + 0.5).toFixed(1);
+                    } else {
+                        const angle = parseFloat(document.getElementById('launchAngle').value);
+                        document.getElementById('launchAngle').value = Math.min(90, angle + 5);
+                    }
+                    break;
+                case 'ArrowDown':
+                    if (event.shiftKey) {
+                        const vel = parseFloat(document.getElementById('launchVelocity').value);
+                        document.getElementById('launchVelocity').value = Math.max(0, vel - 0.5).toFixed(1);
+                    } else {
+                        const angle = parseFloat(document.getElementById('launchAngle').value);
+                        document.getElementById('launchAngle').value = Math.max(0, angle - 5);
+                    }
+                    break;
+            }
+        });
+
+        // Add touch events for mobile devices
+        let touchStartY = 0;
+        canvas.addEventListener('touchstart', (event) => {
+            touchStartY = event.touches[0].clientY;
+        });
+
+        canvas.addEventListener('touchmove', (event) => {
+            event.preventDefault();
+            const touchY = event.touches[0].clientY;
+            const deltaY = touchStartY - touchY;
+            
+            const angle = parseFloat(document.getElementById('launchAngle').value);
+            const newAngle = angle + (deltaY * 0.5);
+            document.getElementById('launchAngle').value = Math.min(90, Math.max(0, newAngle));
+            
+            touchStartY = touchY;
+        });
+
+        // Add mouse wheel control for velocity
+        canvas.addEventListener('wheel', (event) => {
+            event.preventDefault();
+            const vel = parseFloat(document.getElementById('launchVelocity').value);
+            const delta = event.deltaY > 0 ? -0.5 : 0.5;
+            document.getElementById('launchVelocity').value = Math.max(0, vel + delta).toFixed(1);
+        });
+
+        // Initial setup
+        function init() {
+            drawGrid();
+            drawGround();
+            drawTrajectory();
+            updateInfoPanel(0, y0, 0);
+            currentStep = 1; // Add this
+            questionAsked = false; // Add this
+            updateSteps(); // Add this
+
+            // Add tooltip for controls
+            const tooltip = document.createElement('div');
+            tooltip.style.position = 'fixed';
+            tooltip.style.bottom = '10px';
+            tooltip.style.left = '50%';
+            tooltip.style.transform = 'translateX(-50%)';
+            tooltip.style.background = 'rgba(0, 0, 0, 0.8)';
+            tooltip.style.color = '#fff';
+            tooltip.style.padding = '10px';
+            tooltip.style.borderRadius = '5px';
+            tooltip.style.fontSize = '0.8em';
+            tooltip.innerHTML = `
+                Keyboard Controls:<br>
+                Space: Launch | P: Pause | R: Reset | T: Toggle Trail<br>
+                ↑↓: Adjust Angle | Shift + ↑↓: Adjust Velocity<br>
+                Mouse Wheel: Adjust Velocity
+            `;
+            document.body.appendChild(tooltip);
+
+            // Hide tooltip after 5 seconds
+            setTimeout(() => {
+                tooltip.style.opacity = '0';
+                tooltip.style.transition = 'opacity 1s';
+                setTimeout(() => tooltip.remove(), 1000);
+            }, 5000);
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            const container = document.querySelector('.container');
+            const containerWidth = container.clientWidth;
+            canvas.width = Math.min(1000, containerWidth - 40);
+            canvas.height = canvas.width * 0.5;
+            init();
+        });
+        document.getElementById('showHints').addEventListener('click', () => {
+            alert("Hint: Try different angles while keeping velocity constant to observe trajectory changes!");
+        });
+
+        document.getElementById('showSuggestions').addEventListener('click', () => {
+            alert("Suggestion: Compare time of flight at 45° and 60° with same velocity!");
+        });
+
+        document.getElementById('showTips').addEventListener('click', () => {
+            alert("Tip: Maximum range occurs at 45° in vacuum! Air resistance changes this.");
+        });
+
+        // Modify the shootButton event listener
+        document.getElementById('shootButton').addEventListener('click', () => {
+            currentStep = 2;
+            updateSteps();
+            // Existing shoot code...
+        });
+
+        // Add input validation
+        document.getElementById('launchAngle').addEventListener('input', (e) => {
+            if(isNaN(e.target.value) || e.target.value > 90) {
+                alert("Angle must be a number ≤ 90°!");
+                e.target.value = 90;
+    }
+            currentStep = 1;
+            updateSteps();
+        });
+
+        // Initialize steps
+        updateSteps();
+        init();
+    </script>
+</body>
+</html>

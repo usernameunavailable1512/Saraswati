@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Results</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .results-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .score-display {
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+
+        .score-display p {
+            margin: 10px 0;
+            font-size: 1.2rem;
+        }
+
+        .state-statistics {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f0f8ff;
+            border-radius: 5px;
+        }
+
+        .state-statistics h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .state-statistics p {
+            margin: 10px 0;
+            font-size: 1.1rem;
+        }
+
+        #restart-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: block;
+            margin: 20px auto 0;
+            transition: background-color 0.3s;
+        }
+
+        #restart-btn:hover {
+            background-color: #0056b3;
+        }
+
+        .submission-message {
+            text-align: center;
+            color: #28a745;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+        }
+
+        .emotion-statistics {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f0f8ff;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .emotion-statistics h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .emotion-statistics p {
+            margin: 10px 0;
+            font-size: 1.1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 10px;
+            background-color: white;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        .emotion-statistics p:hover {
+            background-color: #e9ecef;
+        }
+
+        .emotion-statistics span {
+            font-weight: bold;
+            color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Student State and Emotion Detection</h1>
+        </div>
+
+        <div class="results-container">
+            <h2 id="submission-message" class="submission-message">Quiz Submitted!</h2>
+            
+            <div class="score-display">
+                <p>Your Score: <span id="score">0</span> out of <span id="total-questions">5</span></p>
+                <p>Percentage: <span id="percentage">0</span>%</p>
+            </div>
+            
+            <div class="state-statistics">
+                <h3>Your Mental States During the Quiz:</h3>
+                <p>Restlessness: <span id="restless-time">00:00</span></p>
+                <p>Confusion: <span id="confused-time">00:00</span></p>
+                <p>Boredom: <span id="bored-time">00:00</span></p>
+            </div>
+            
+            <div class="emotion-statistics">
+                <h3>Emotion Detection Results:</h3>
+                <p>Angry: <span id="angry-count">0</span> times</p>
+                <p>Disgust: <span id="disgust-count">0</span> times</p>
+                <p>Fear: <span id="fear-count">0</span> times</p>
+                <p>Happy: <span id="happy-count">0</span> times</p>
+                <p>Sad: <span id="sad-count">0</span> times</p>
+                <p>Surprise: <span id="surprise-count">0</span> times</p>
+                <p>Neutral: <span id="neutral-count">0</span> times</p>
+            </div>
+            
+            <button id="restart-btn"><a href="visualization.html">Visualize Results</a></button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Retrieve quiz results from localStorage
+            const quizResults = JSON.parse(localStorage.getItem('quizResults') || '{}');
+            
+            // Update the submission message
+            const submissionMessage = document.getElementById('submission-message');
+            if (quizResults.message) {
+                submissionMessage.textContent = quizResults.message;
+            }
+            
+            // Update score information
+            document.getElementById('score').textContent = quizResults.score || 0;
+            document.getElementById('total-questions').textContent = quizResults.totalQuestions || 5;
+            document.getElementById('percentage').textContent = quizResults.percentage || 0;
+            
+            // Update mental state durations
+            document.getElementById('restless-time').textContent = quizResults.restlessDuration || '00:00';
+            document.getElementById('confused-time').textContent = quizResults.confusedDuration || '00:00';
+            document.getElementById('bored-time').textContent = quizResults.boredDuration || '00:00';
+            
+            // Update emotion counts
+            document.getElementById('angry-count').textContent = quizResults.angryCount || 0;
+            document.getElementById('disgust-count').textContent = quizResults.disgustCount || 0;
+            document.getElementById('fear-count').textContent = quizResults.fearCount || 0;
+            document.getElementById('happy-count').textContent = quizResults.happyCount || 0;
+            document.getElementById('sad-count').textContent = quizResults.sadCount || 0;
+            document.getElementById('surprise-count').textContent = quizResults.surpriseCount || 0;
+            document.getElementById('neutral-count').textContent = quizResults.neutralCount || 0;
+            
+            // Add restart button functionality
+            document.getElementById('restart-btn').addEventListener('click', () => {
+                window.location.href = 'index.html';
+            });
+        });
+    </script>
+</body>
+</html> 
